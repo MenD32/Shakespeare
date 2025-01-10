@@ -2,7 +2,10 @@
 package trace
 
 import (
+	"bufio"
+	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -30,4 +33,29 @@ type TraceLogRequest struct {
 
 type TraceLog struct {
 	Requests []TraceLogRequest
+}
+
+func NewTraceLog(filepath string) (*TraceLog, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var requests []TraceLogRequest
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		request := TraceLogRequest{}
+		err = json.Unmarshal([]byte(line), &request)
+		if err != nil {
+			return nil, err
+		}
+		requests = append(requests, request)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return &TraceLog{Requests: requests}, nil
 }
