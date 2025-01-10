@@ -1,5 +1,5 @@
 // TraceLogRequest represents a single request from an HTTP trace.
-package trace
+package clients
 
 import (
 	"bufio"
@@ -9,33 +9,37 @@ import (
 	"time"
 )
 
+type Trace interface {
+	Dump(*os.File) error
+}
+
 // TraceLogRequest represents a single request from an HTTP trace
 type TraceLogRequest struct {
 	// Timestamp of the request start, relative to the start of the traceLog.
-	Timestamp time.Duration
+	Delay time.Duration `json:"delay"`
 
 	// HTTP method
-	Method string
+	Method string `json:"method"`
 	// Path in the URL request, which is the specific endpoint being accessed
-	Path string
+	Path string `json:"path"`
 
 	// Protocol specification
-	Proto      string // e.g. "HTTP/1.1"
-	ProtoMajor int    // e.g. 1
-	ProtoMinor int    // e.g. 1
+	Proto      string `json:"proto"` // e.g. "HTTP/1.1"
+	ProtoMajor int    `json:"major"` // e.g. 1
+	ProtoMinor int    `json:"minor"` // e.g. 1
 
 	// Request headers
-	Header http.Header
+	Header []http.Header `json:"headers"`
 
 	// Request body
-	Body []byte
+	Body []byte `json:"body"`
 }
 
 type TraceLog struct {
 	Requests []TraceLogRequest
 }
 
-func NewTraceLog(filepath string) (*TraceLog, error) {
+func New(filepath string) (*TraceLog, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
@@ -58,4 +62,18 @@ func NewTraceLog(filepath string) (*TraceLog, error) {
 		return nil, err
 	}
 	return &TraceLog{Requests: requests}, nil
+}
+
+func (t *TraceLog) Dump(file *os.File) error {
+	for _, request := range t.Requests {
+		data, err := json.Marshal(request)
+		if err != nil {
+			return err
+		}
+		_, err = file.Write(append(data, '\n'))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
