@@ -12,12 +12,12 @@ import (
 	"github.com/MenD32/Shakespeare/pkg/trace"
 )
 
-type BasicGenerator struct {
+type OpenAIGenerator struct {
 	RPS      float64
 	Duration time.Duration
 }
 
-func (g *BasicGenerator) Generate() (trace.TraceLog, error) {
+func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
 
 	requestCount := int(g.Duration.Seconds() * g.RPS)
 	interval := time.Second / time.Duration(g.RPS)

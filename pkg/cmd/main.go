@@ -22,7 +22,8 @@ var rootCmd = &cobra.Command{
 	Short: "Shakespeare CLI application",
 	Long:  `A CLI application to generate traces for the Tempest loadtesting tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		generator := generators.BasicGenerator{
+
+		generator := generators.OpenAIGenerator{
 			RPS:      float64(requestsPerSecond),
 			Duration: time.Second * time.Duration(duration),
 		}
