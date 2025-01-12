@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/MenD32/Shakespeare/pkg/generators"
+	"github.com/MenD32/Shakespeare/pkg/generators/openai"
 )
 
 var (
@@ -23,9 +23,12 @@ var rootCmd = &cobra.Command{
 	Long:  `A CLI application to generate traces for the Tempest loadtesting tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		generator := generators.OpenAIGenerator{
+		generator := openai.OpenAIGenerator{
 			RPS:      float64(requestsPerSecond),
 			Duration: time.Second * time.Duration(duration),
+			Model:    "accounts/fireworks/models/llama-v3-70b-instruct",
+			Endpoint: "inference/v1/chat/completions",
+			APIKey:   "",
 		}
 
 		traceLog, err := generator.Generate()

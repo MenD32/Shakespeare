@@ -1,4 +1,4 @@
-package generators
+package openai
 
 import (
 	"encoding/csv"
@@ -12,9 +12,20 @@ import (
 	"github.com/MenD32/Shakespeare/pkg/trace"
 )
 
+const (
+	DefaultMethod   = "POST"
+	DefaultEndpoint = "/v1/chat/completions"
+)
+
 type OpenAIGenerator struct {
 	RPS      float64
 	Duration time.Duration
+
+	// OpenAI API key
+	APIKey   string
+	Method   string
+	Endpoint string
+	Model    string
 }
 
 func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
@@ -26,24 +37,50 @@ func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
 	var body []byte
 	var err error
 
+	headers := g.getHeaders()
+	method := g.getMethod()
+	endpoint := g.getEndpoint()
+
 	for i := 0; i < requestCount; i++ {
-		body, err = buildRequestbody()
+		body, err = g.buildRequestbody()
 		if err != nil {
 			return nil, fmt.Errorf("failed to build request body: %v", err)
 		}
 
 		traces = append(traces, trace.TraceLogRequest{
-			Delay:  time.Duration(i) * interval,
-			Method: "POST",
-			Path:   "/v1/chat/completions",
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: body,
+			Delay:   time.Duration(i) * interval,
+			Method:  method,
+			Path:    endpoint,
+			Headers: headers,
+			Body:    body,
 		})
 	}
 	return traces, nil
 
+}
+
+func (g *OpenAIGenerator) getMethod() string {
+	if g.Method == "" {
+		return DefaultMethod
+	}
+	return g.Method
+}
+
+func (g *OpenAIGenerator) getEndpoint() string {
+	if g.Endpoint == "" {
+		return DefaultEndpoint
+	}
+	return g.Endpoint
+}
+
+func (g *OpenAIGenerator) getHeaders() map[string]string {
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	if g.APIKey != "" {
+		headers["Authorization"] = "Bearer " + g.APIKey
+	}
+	return headers
 }
 
 func readCsvFile(filePath string) [][]string {
@@ -71,7 +108,7 @@ func getPrompt() []string {
 	return prompts[randomIndex]
 }
 
-func buildRequestbody() ([]byte, error) {
+func (g OpenAIGenerator) buildRequestbody() ([]byte, error) {
 
 	prompt := getPrompt()
 	if len(prompt) != 2 {
@@ -79,7 +116,7 @@ func buildRequestbody() ([]byte, error) {
 	}
 
 	body := make(map[string]interface{})
-	body["model"] = "Qwen/Qwen2-7B-Instruct"
+	body["model"] = g.Model
 	body["messages"] = []map[string]string{
 		{
 			"role":    "user",
@@ -91,7 +128,7 @@ func buildRequestbody() ([]byte, error) {
 		"include_usage": true,
 	}
 
-	body["max_completion_tokens"] = 100
+	body["max_completion_tokens"] = 300
 
 	jsonData, err := json.Marshal(body)
 	if err != nil {
