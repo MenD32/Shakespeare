@@ -15,6 +15,13 @@ import (
 const (
 	DefaultMethod   = "POST"
 	DefaultEndpoint = "/v1/chat/completions"
+
+	DefaultRole        = "system"
+	DefaultContentType = "application/json"
+
+	ContentHeader       = "Content-Type"
+	AuthorizationHeader = "Authorization"
+	AuthorizationPrefix = "Bearer "
 )
 
 type OpenAIGenerator struct {
@@ -22,10 +29,11 @@ type OpenAIGenerator struct {
 	Duration time.Duration
 
 	// OpenAI API key
-	APIKey   string
-	Method   string
-	Endpoint string
-	Model    string
+	APIKey              string
+	Method              string
+	Endpoint            string
+	Model               string
+	MaxCompletionTokens int
 }
 
 func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
@@ -42,7 +50,8 @@ func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
 	endpoint := g.getEndpoint()
 
 	for i := 0; i < requestCount; i++ {
-		body, err = g.buildRequestbody()
+		prompt := getPrompt()
+		body, err = g.buildRequestBody(prompt[1])
 		if err != nil {
 			return nil, fmt.Errorf("failed to build request body: %v", err)
 		}
@@ -75,10 +84,10 @@ func (g *OpenAIGenerator) getEndpoint() string {
 
 func (g *OpenAIGenerator) getHeaders() map[string]string {
 	headers := map[string]string{
-		"Content-Type": "application/json",
+		ContentHeader: DefaultContentType,
 	}
 	if g.APIKey != "" {
-		headers["Authorization"] = "Bearer " + g.APIKey
+		headers[AuthorizationHeader] = AuthorizationPrefix + g.APIKey
 	}
 	return headers
 }
@@ -108,27 +117,14 @@ func getPrompt() []string {
 	return prompts[randomIndex]
 }
 
-func (g OpenAIGenerator) buildRequestbody() ([]byte, error) {
+func (g OpenAIGenerator) buildRequestBody(prompt string) ([]byte, error) {
 
-	prompt := getPrompt()
-	if len(prompt) != 2 {
-		return nil, fmt.Errorf("prompt is Malformed")
-	}
-
-	body := make(map[string]interface{})
-	body["model"] = g.Model
-	body["messages"] = []map[string]string{
-		{
-			"role":    "user",
-			"content": prompt[1],
-		},
-	}
-	body["stream"] = true
-	body["stream_options"] = map[string]interface{}{
-		"include_usage": true,
-	}
-
-	body["max_completion_tokens"] = 300
+	body := NewOpenAIRequestBody(
+		g.Model,
+		DefaultRole,
+		prompt,
+		g.MaxCompletionTokens,
+	)
 
 	jsonData, err := json.Marshal(body)
 	if err != nil {
@@ -136,4 +132,39 @@ func (g OpenAIGenerator) buildRequestbody() ([]byte, error) {
 	}
 
 	return jsonData, nil
+}
+
+type OpenAIRequestBody struct {
+	Model               string          `json:"model"`
+	Messages            []OpenAIMessage `json:"messages"`
+	Stream              bool            `json:"stream"`
+	StreamOptions       StreamOptions   `json:"stream_options"`
+	MaxCompletionTokens int             `json:"max_completion_tokens"`
+	MaxTokens           int             `json:"max_tokens"` // Deprecated: Use MaxCompletionTokens instead
+}
+
+func NewOpenAIRequestBody(model string, role string, prompt string, maxCompletionTokens int) OpenAIRequestBody {
+	return OpenAIRequestBody{
+		Model: model,
+		Messages: []OpenAIMessage{
+			{
+				Role:    role,
+				Content: prompt,
+			},
+		},
+		Stream: true,
+		StreamOptions: StreamOptions{
+			IncludeUsage: true,
+		},
+		MaxCompletionTokens: maxCompletionTokens,
+	}
+}
+
+type OpenAIMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type StreamOptions struct {
+	IncludeUsage bool `json:"include_usage"`
 }

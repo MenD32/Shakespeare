@@ -26,8 +26,8 @@ var rootCmd = &cobra.Command{
 		generator := openai.OpenAIGenerator{
 			RPS:      float64(requestsPerSecond),
 			Duration: time.Second * time.Duration(duration),
-			Model:    "accounts/fireworks/models/llama-v3-70b-instruct",
-			Endpoint: "inference/v1/chat/completions",
+			Model:    "meta-llama/Meta-Llama-3-8B-Instruct",
+			Endpoint: "v1/chat/completions",
 			APIKey:   "",
 		}
 
