@@ -140,7 +140,6 @@ type OpenAIRequestBody struct {
 	Stream              bool            `json:"stream"`
 	StreamOptions       StreamOptions   `json:"stream_options"`
 	MaxCompletionTokens int             `json:"max_completion_tokens"`
-	MaxTokens           int             `json:"max_tokens"` // Deprecated: Use MaxCompletionTokens instead
 }
 
 func NewOpenAIRequestBody(model string, role string, prompt string, maxCompletionTokens int) OpenAIRequestBody {

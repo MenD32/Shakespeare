@@ -15,6 +15,8 @@ var (
 	requestsPerSecond int
 	duration          int
 	outputFilePath    string
+
+	requestType string
 )
 
 var rootCmd = &cobra.Command{
@@ -56,6 +58,12 @@ func init() {
 	rootCmd.Flags().IntVarP(&requestsPerSecond, "requestsPerSecond", "r", 0, "Number of requests per second")
 	rootCmd.Flags().IntVarP(&duration, "duration", "d", 0, "Duration in seconds")
 	rootCmd.Flags().StringVarP(&outputFilePath, "outputFilePath", "o", "", "Path to the output file")
+
+	rootCmd.MarkFlagRequired("requestsPerSecond")
+	rootCmd.MarkFlagRequired("duration")
+	rootCmd.MarkFlagRequired("outputFilePath")
+
+	rootCmd.Flags().StringVarP(&requestType, "requestType", "t", "openai", "Type of request to generate")
 }
 
 func Execute() {

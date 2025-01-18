@@ -5,3 +5,11 @@ type Config struct {
 	Duration          int
 	OutputFilePath    string
 }
+
+type RequestType string
+
+const (
+	OpenAI RequestType = "openai"
+)
+
+
