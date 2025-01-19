@@ -36,6 +36,17 @@ type OpenAIGenerator struct {
 	MaxCompletionTokens int
 }
 
+func NewOpenAIGenerator(conf Config) *OpenAIGenerator {
+	return &OpenAIGenerator{
+		RPS:                 conf.GetRequestsPerSecond(),
+		Duration:            conf.GetDuration(),
+		APIKey:              conf.GetAPIKey(),
+		Model:               conf.GetModel(),
+		Endpoint:            conf.GetEndpoint(),
+		MaxCompletionTokens: conf.GetMaxCompletionTokens(),
+	}
+}
+
 func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
 
 	requestCount := int(g.Duration.Seconds() * g.RPS)

@@ -4,19 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/MenD32/Shakespeare/pkg/generators/openai"
+	"github.com/MenD32/Shakespeare/pkg/config"
 )
 
 var (
-	requestsPerSecond int
-	duration          int
-	outputFilePath    string
+	outputFilePath string
 
-	requestType string
+	generatorType    string
+	generatorOptions string // json
+
 )
 
 var rootCmd = &cobra.Command{
@@ -25,12 +24,10 @@ var rootCmd = &cobra.Command{
 	Long:  `A CLI application to generate traces for the Tempest loadtesting tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		generator := openai.OpenAIGenerator{
-			RPS:      float64(requestsPerSecond),
-			Duration: time.Second * time.Duration(duration),
-			Model:    "meta-llama/Meta-Llama-3-8B-Instruct",
-			Endpoint: "v1/chat/completions",
-			APIKey:   "",
+		generator, err := config.GeneratorFactory(config.GeneratorType(generatorType), generatorOptions)
+		if err != nil {
+			fmt.Printf("Error creating generator: %v\n", err)
+			return
 		}
 
 		traceLog, err := generator.Generate()
@@ -55,15 +52,12 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().IntVarP(&requestsPerSecond, "requestsPerSecond", "r", 0, "Number of requests per second")
-	rootCmd.Flags().IntVarP(&duration, "duration", "d", 0, "Duration in seconds")
-	rootCmd.Flags().StringVarP(&outputFilePath, "outputFilePath", "o", "", "Path to the output file")
-
-	rootCmd.MarkFlagRequired("requestsPerSecond")
-	rootCmd.MarkFlagRequired("duration")
-	rootCmd.MarkFlagRequired("outputFilePath")
-
-	rootCmd.Flags().StringVarP(&requestType, "requestType", "t", "openai", "Type of request to generate")
+	rootCmd.Flags().StringVarP(&generatorType, "requestType", "t", "openai", "Type of request to generate")
+	rootCmd.MarkFlagRequired("requestType")
+	rootCmd.Flags().StringVarP(&generatorOptions, "generatorOptions", "g", "", "Options for the generator")
+	rootCmd.MarkFlagRequired("generatorOptions")
+	rootCmd.Flags().StringVarP(&outputFilePath, "output", "o", "trace.json", "Output file path")
+	rootCmd.MarkFlagRequired("output")
 }
 
 func Execute() {
