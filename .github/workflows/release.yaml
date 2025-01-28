@@ -1,3 +1,7 @@
+release-matrix: &release-matrix
+  goos: [linux, darwin, windows]
+  goarch: [amd64, arm64]
+
 name: Create Tag
 
 on:
@@ -15,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
 
       - name: Create Tag
         id: create_tag
@@ -24,29 +28,52 @@ jobs:
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
-  release:
+  build:
     needs: create_tag
     name: Create Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.0§
+    strategy:
+      matrix: *release-matrix
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
       
       - name: Set up Go
-        uses: actions/setup-go@v5.3.0
+        uses: actions/setup-go@v5
         with:
           go-version: '1.23.4'
-      
-      - name: Install dependencies
-        run: go mod download
 
       - name: Build
-        run: make build
+        run: make build GOOS=${{ matrix.goarch }} GOARCH=${{ matrix.goarch }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shakespeare-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/shakespeare
+
+    
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    
+    strategy:
+      matrix: *release-matrix
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: shakespeare-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/shakespeare-${{ matrix.goos }}-${{ matrix.goarch }}
+
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
           tag_name: ${{ github.event.inputs.tag_name }}
+          files: |
+            dist/shakespeare-${{ matrix.goos }}-${{ matrix.goarch }}
         
