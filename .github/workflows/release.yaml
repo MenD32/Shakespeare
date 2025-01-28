@@ -25,6 +25,7 @@ jobs:
           git push origin $TAG_NAME
 
   release:
+    needs: create_tag
     name: Create Release
     runs-on: ubuntu-latest
 
