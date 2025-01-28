@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   create_tag:
+    name: Create Tag
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
