@@ -1,8 +1,9 @@
+name: Create Tag
+
 release-matrix: &release-matrix
   goos: [linux, darwin, windows]
   goarch: [amd64, arm64]
 
-name: Create Tag
 
 on:
   workflow_dispatch:
