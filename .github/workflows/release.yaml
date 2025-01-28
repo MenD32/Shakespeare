@@ -1,10 +1,5 @@
 name: Create Tag
 
-release-matrix: &release-matrix
-  goos: [linux, darwin, windows]
-  goarch: [amd64, arm64]
-
-
 on:
   workflow_dispatch:
     inputs:
@@ -34,7 +29,9 @@ jobs:
     name: Create Release
     runs-on: ubuntu-24.0§
     strategy:
-      matrix: *release-matrix
+      matrix: 
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
 
     steps:
       - name: Checkout code
@@ -60,7 +57,9 @@ jobs:
     runs-on: ubuntu-24.04
     
     strategy:
-      matrix: *release-matrix
+      matrix: 
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
 
     steps:
       - name: Download artifacts
