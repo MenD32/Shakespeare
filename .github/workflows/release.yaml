@@ -27,7 +27,7 @@ jobs:
   build:
     needs: create_tag
     name: Create Release
-    runs-on: ubuntu-24.0§
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -66,17 +66,11 @@ jobs:
           name: shakespeare-binaries
           path: dist/
 
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
           tag_name: ${{ github.event.inputs.tag_name }}
           files: |
-            dist/shakespeare-linux-amd64
-            dist/shakespeare-linux-arm64
-            dist/shakespeare-darwin-amd64
-            dist/shakespeare-darwin-arm64
-            dist/shakespeare-windows-amd64
-            dist/shakespeare-windows-arm64
+            dist/*
         
