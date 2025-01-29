@@ -5,21 +5,29 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/MenD32/Shakespeare/pkg/config"
+	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 var (
-	outputFilePath string
-
+	outputFilePath   string
 	generatorType    string
-	generatorOptions string // json
-
+	generatorOptions string
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "shakespeare",
+var (
+	Version        = "dev"
+	CommitHash     = "none"
+	BuildTimestamp = "unknown"
+)
+
+func BuildVersion() string {
+	return fmt.Sprintf("%s-%s (%s)", Version, CommitHash, BuildTimestamp)
+}
+
+var runCmd = &cobra.Command{
+	Use:   "generate",
 	Short: "Shakespeare CLI application",
 	Long:  `A CLI application to generate traces for the Tempest loadtesting tool.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -51,13 +59,33 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: `Get the version of Shakespeare.`,
+	Long:  `Get the version of Shakespeare.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		klog.Infof("Tempest version: %s\n", BuildVersion())
+	},
+}
+
+var rootCmd = &cobra.Command{
+	Short: "Shakespeare is a tool for creating traces for the Tempest loadtesting tool.",
+	Long:  `Shakespeare is a tool for creating traces for the Tempest loadtesting tool.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
+}
+
 func init() {
-	rootCmd.Flags().StringVarP(&generatorType, "requestType", "t", "openai", "Type of request to generate")
-	rootCmd.MarkFlagRequired("requestType")
-	rootCmd.Flags().StringVarP(&generatorOptions, "generatorOptions", "g", "", "Options for the generator")
-	rootCmd.MarkFlagRequired("generatorOptions")
-	rootCmd.Flags().StringVarP(&outputFilePath, "output", "o", "trace.json", "Output file path")
-	rootCmd.MarkFlagRequired("output")
+	runCmd.Flags().StringVarP(&generatorType, "requestType", "t", "openai", "Type of request to generate")
+	runCmd.MarkFlagRequired("requestType")
+	runCmd.Flags().StringVarP(&generatorOptions, "generatorOptions", "g", "", "Options for the generator")
+	runCmd.MarkFlagRequired("generatorOptions")
+	runCmd.Flags().StringVarP(&outputFilePath, "output", "o", "trace.json", "Output file path")
+	runCmd.MarkFlagRequired("output")
+
+	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func Execute() {
