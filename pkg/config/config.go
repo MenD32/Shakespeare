@@ -21,9 +21,9 @@ func GeneratorFactory(generatorType GeneratorType, options string) (generators.G
 		openaiConfig := &openai.Config{}
 		err = json.Unmarshal([]byte(options), openaiConfig)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to unmarshal OpenAI config: %v", err)
 		}
-		return openai.NewOpenAIGenerator(*openaiConfig), nil
+		return openai.NewOpenAIGenerator(*openaiConfig)
 	default:
 		return nil, fmt.Errorf("unknown generator type: %s", generatorType)
 	}

@@ -26,7 +26,7 @@ func newDatasetFromReader(body io.Reader) (*Dataset, error) {
 	return &dataset, nil
 }
 
-type datasetParquetFiles map[string]map[string]string
+type datasetParquetFiles map[string]map[string][]string
 
 func newDatasetParquetFilesFromReader(body io.Reader) (datasetParquetFiles, error) {
 	var parquetFiles datasetParquetFiles
@@ -77,7 +77,11 @@ func GetRandomPrompt(data DatasetData, column string, filter func(string) bool) 
 	prompts := make([]string, 0)
 
 	for _, row := range data {
-		if filter(row[column]) {
+		prompt, ok := row[column]
+		if !ok {
+			continue
+		}
+		if filter(prompt) {
 			prompts = append(prompts, row[column])
 		}
 	}

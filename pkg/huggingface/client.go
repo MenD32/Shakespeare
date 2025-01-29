@@ -1,13 +1,15 @@
 package huggingface
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 )
 
 const (
 	// DefaultURL is the default URL for the Hugging Face API.
-	DefaultURL = "https://huggingface.co/api"
+	DefaultProto = "https"
+	DefaultURL   = "huggingface.co/api"
 
 	// Endpoints
 	datasetEndpoint = "datasets"
@@ -15,12 +17,14 @@ const (
 )
 
 type Client struct {
+	Proto string
 	URL   string
 	Token string
 }
 
 func NewDefaultClient() *Client {
 	return &Client{
+		Proto: DefaultProto,
 		URL:   DefaultURL,
 		Token: "",
 	}
@@ -31,12 +35,12 @@ func (c *Client) getHTTPClient() *http.Client {
 }
 
 func (c *Client) generateGetDatasetRequest(RepoID string) (*http.Request, error) {
-	endpoint := path.Join(c.URL, datasetEndpoint, RepoID)
+	endpoint := fmt.Sprintf("%s://%s", c.Proto, path.Join(c.URL, datasetEndpoint, RepoID))
 	return http.NewRequest("GET", endpoint, nil)
 }
 
 func (c *Client) generateGetDatasetParquetRequest(RepoID string) (*http.Request, error) {
-	endpoint := path.Join(c.URL, datasetEndpoint, RepoID, parquetEndpoint)
+	endpoint := fmt.Sprintf("%s://%s", c.Proto, path.Join(c.URL, datasetEndpoint, RepoID, parquetEndpoint))
 	return http.NewRequest("GET", endpoint, nil)
 }
 

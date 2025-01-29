@@ -3,10 +3,10 @@ package openai
 import "time"
 
 const (
-	DefaultAPIEndpoint = "v1/chat/completions"
-	DefaultMaxTokens   = 100
+	DefaultAPIEndpoint       = "v1/chat/completions"
+	DefaultMaxTokens         = 100
 	DefaultRequestsPerSecond = 1
-	DefaultDuration    = time.Minute
+	DefaultDuration          = time.Minute
 )
 
 type Config struct {
@@ -17,6 +17,14 @@ type Config struct {
 	Endpoint            string `json:"endpoint"`
 	Model               string `json:"model"`
 	MaxCompletionTokens int    `json:"maxtokens"`
+
+	MinInputLength int `json:"min_input_length"`
+	MaxInputLength int `json:"max_input_length"`
+
+	Dataset string `json:"dataset"`
+	Split   string `json:"split"`
+	Subset  string `json:"subset"`
+	Column  string `json:"column"`
 }
 
 func (g *Config) GetRequestsPerSecond() float64 {

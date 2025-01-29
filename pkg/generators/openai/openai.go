@@ -1,19 +1,15 @@
 package openai
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"log"
-	"math/rand"
-	"os"
 	"time"
 
+	"github.com/MenD32/Shakespeare/pkg/huggingface"
 	"github.com/MenD32/Shakespeare/pkg/trace"
 )
 
 const (
-	DefaultMethod   = "POST"
 	DefaultEndpoint = "/v1/chat/completions"
 
 	DefaultRole        = "system"
@@ -25,44 +21,40 @@ const (
 )
 
 type OpenAIGenerator struct {
-	RPS      float64
-	Duration time.Duration
-
-	// OpenAI API key
-	APIKey              string
-	Method              string
-	Endpoint            string
-	Model               string
-	MaxCompletionTokens int
+	Config
+	data huggingface.DatasetData
 }
 
-func NewOpenAIGenerator(conf Config) *OpenAIGenerator {
-	return &OpenAIGenerator{
-		RPS:                 conf.GetRequestsPerSecond(),
-		Duration:            conf.GetDuration(),
-		APIKey:              conf.GetAPIKey(),
-		Model:               conf.GetModel(),
-		Endpoint:            conf.GetEndpoint(),
-		MaxCompletionTokens: conf.GetMaxCompletionTokens(),
+func NewOpenAIGenerator(conf Config) (*OpenAIGenerator, error) {
+	generator := &OpenAIGenerator{
+		Config: conf,
 	}
+	err := generator.loadDatasetData()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load dataset data: %v", err)
+	}
+
+	return generator, nil
 }
 
 func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
 
-	requestCount := int(g.Duration.Seconds() * g.RPS)
-	interval := time.Second / time.Duration(g.RPS)
+	requestCount := int(g.Config.GetRequestsPerSecond() * g.Config.GetDuration().Seconds())
+	interval := time.Second / time.Duration(g.Config.GetRequestsPerSecond())
 	traces := make([]trace.TraceLogRequest, 0)
 
 	var body []byte
-	var err error
 
+	method := "POST"
 	headers := g.getHeaders()
-	method := g.getMethod()
 	endpoint := g.getEndpoint()
 
 	for i := 0; i < requestCount; i++ {
-		prompt := getPrompt()
-		body, err = g.buildRequestBody(prompt[1])
+		prompt, err := g.getPrompt()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get prompt: %v", err)
+		}
+		body, err = g.buildRequestBody(prompt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build request body: %v", err)
 		}
@@ -77,13 +69,6 @@ func (g *OpenAIGenerator) Generate() (trace.TraceLog, error) {
 	}
 	return traces, nil
 
-}
-
-func (g *OpenAIGenerator) getMethod() string {
-	if g.Method == "" {
-		return DefaultMethod
-	}
-	return g.Method
 }
 
 func (g *OpenAIGenerator) getEndpoint() string {
@@ -103,29 +88,45 @@ func (g *OpenAIGenerator) getHeaders() map[string]string {
 	return headers
 }
 
-func readCsvFile(filePath string) [][]string {
-	f, err := os.Open(filePath)
+func (g *OpenAIGenerator) loadDatasetData() error {
+	client := huggingface.NewDefaultClient()
+	parquetFiles, err := client.GetParquetFiles(g.Config.Dataset)
 	if err != nil {
-		log.Fatal("Unable to read input file "+filePath, err)
-	}
-	defer f.Close()
-
-	csvReader := csv.NewReader(f)
-	records, err := csvReader.ReadAll()
-	if err != nil {
-		log.Fatal("Unable to parse file as CSV for "+filePath, err)
+		return err
 	}
 
-	return records
+	subset, ok := parquetFiles[g.Config.Split]
+	if !ok {
+		return fmt.Errorf("split %s not found", g.Config.Split)
+	}
+	parquetfileurls, ok := subset[g.Config.Subset]
+	if !ok {
+		return fmt.Errorf("subset %s not found", g.Config.Subset)
+	}
+
+	data := make(huggingface.DatasetData, 0)
+	for _, url := range parquetfileurls {
+		urldata, err := huggingface.NewDatasetData(url)
+		if err != nil {
+			return err
+		}
+		data = append(data, urldata...)
+	}
+
+	g.data = data
+	return nil
 }
 
-func getPrompt() []string {
-	prompts := readCsvFile("/Users/mend/Downloads/prompts.csv")
-	if len(prompts) == 0 {
-		return []string{}
+func (g *OpenAIGenerator) getPrompt() (string, error) {
+	prompt, err := huggingface.GetRandomPrompt(g.data, g.Config.Column, func(s string) bool {
+		return len(s) >= g.Config.MinInputLength && len(s) <= g.Config.MaxInputLength
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to get random prompt: %v", err)
 	}
-	randomIndex := rand.Intn(len(prompts))
-	return prompts[randomIndex]
+
+	return prompt, nil
 }
 
 func (g OpenAIGenerator) buildRequestBody(prompt string) ([]byte, error) {
